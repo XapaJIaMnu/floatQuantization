@@ -114,3 +114,29 @@ void float16to32Vec(std::vector<float16_s>& input, std::vector<float>& output) {
     output[i] = float16to32(input[i]);
   }
 }
+
+/*Assumes both vectors are allocated. */
+void float32to8Arr(float * input, float8_s * output, size_t count) {
+  for (size_t i = 0; i < count; i++) {
+    float32to8(input[i], &output[i]);
+  }
+}
+
+void float8to32Arr(float8_s * input, float * output, size_t count) {
+  for (size_t i = 0; i < count; i++) {
+    output[i] = float8to32(input[i]);
+  }
+}
+
+/*Assumes both vectors are allocated. */
+void float32to16Arr(float * input, float16_s * output, size_t count) {
+  for (size_t i = 0; i < count; i++) {
+    float32to16(input[i], &output[i]);
+  }
+}
+
+void float16to32Arr(float16_s * input, float * output, size_t count) {
+  for (size_t i = 0; i < count; i++) {
+    output[i] = float16to32(input[i]);
+  }
+}
