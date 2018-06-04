@@ -64,7 +64,7 @@ void float32to8(float x, float8_s * f8) {
 
   // to 8
   f8->bits.s=f32.bits.s;
-  f8->bits.e=std::max(-3,std::min(4,(int)(f32.bits.e-127))) +3; //WRONG
+  f8->bits.e=std::max(-3,std::min(4,(int)(f32.bits.e-127))) +3;
   f8->bits.m=f32.bits.m >> 19;
 }
 
@@ -74,7 +74,7 @@ float8_s float32to8(float x) {
 
   // to 8
   f8.bits.s=f32.bits.s;
-  f8.bits.e=std::max(-3,std::min(4,(int)(f32.bits.e-127))) +3; //WRONG
+  f8.bits.e=std::max(-3,std::min(4,(int)(f32.bits.e-127))) +3;
   f8.bits.m=f32.bits.m >> 19;
   return f8;
 }
