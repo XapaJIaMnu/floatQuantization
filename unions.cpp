@@ -1,5 +1,6 @@
 #include <iostream>
 #include "floatUnion.h"
+#include <memory>
 #ifdef USE_MPI
 #include <mpi.h>
 #endif
@@ -83,6 +84,61 @@ void vectorTest() {
 
     for (size_t i = 0; i < base_vector.size(); i++) {
         std::cout << "Float 32: " << base_vector[i] << " Float 16: " << from_16[i] << " Float 8: " << from_8[i] << std::endl;
+    }
+}
+
+void sizeTest() {
+	std::cout << "SIZE TEST" << std::endl;
+    std::vector<float8_s> float8_container;
+    float8_container.resize(122500000);
+
+    std::vector<float16_s> float16_container;
+    float16_container.resize(122500000);
+
+    std::vector<float> base_vector;
+    base_vector.resize(122500000);
+
+    for (auto float_num : base_vector) {
+    	float_num = 2.3123f;
+    }
+
+    std::vector<float> from_8;
+    from_8.resize(122500000);
+
+    std::vector<float> from_16;
+    from_16.resize(122500000);
+    std::cout << "ALLOCATION_DONE" << std::endl;
+
+    float32to8Vec(base_vector, float8_container);
+    float32to16Vec(base_vector, float16_container);
+
+    float8to32Vec(float8_container, from_8);
+    float16to32Vec(float16_container, from_16);
+    std::cout << "SIZE TEST DONE" << std::endl;
+    //for (size_t i = 0; i < base_vector.size(); i++) {
+    //    std::cout << "Float 32: " << base_vector[i] << " Float 16: " << from_16[i] << " Float 8: " << from_8[i] << std::endl;
+    //}
+}
+
+void arrTest() {
+	std::unique_ptr<float8_s[]> float8_container(new float8_s[5]);
+
+    std::unique_ptr<float16_s[]> float16_container(new float16_s[5]);
+
+    float base_array[5] = {-4.6991462f, 8.8798271f, -0.38823462f, 0.13823462f, -1.16823462f};
+
+	std::unique_ptr<float> from_8(new float[5]);
+
+    std::unique_ptr<float> from_16(new float[5]);
+
+    float32to8Arr(base_array, float8_container.get(), 5);
+    float32to16Arr(base_array, float16_container.get(), 5);
+
+    float8to32Arr(float8_container.get(), from_8.get(), 5);
+    float16to32Arr(float16_container.get(), from_16.get(), 5);
+
+    for (size_t i = 0; i < 5; i++) {
+        std::cout << "Float 32: " << base_array[i] << " Float 16: " << from_16.get()[i] << " Float 8: " << from_8.get()[i] << std::endl;
     }
 }
 
@@ -220,7 +276,10 @@ int main(int argc, char ** argv) {
     individualTest();
     std::cout << "VECTOR TEST" << std::endl;
     vectorTest();
+    std::cout << "ARRAY TEST" << std::endl;
+    arrTest();
     std::cout << "MPI TEST" << std::endl;
+    sizeTest();
     mpiTest(argc, argv);
 
     return 0;

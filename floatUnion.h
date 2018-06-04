@@ -1,4 +1,8 @@
 #include <vector>
+#include <stdint.h>
+#ifdef CUDA_FOUND
+#include <cuda_fp16.h>
+#endif
 
 typedef union {
   // float8 v;
@@ -29,14 +33,27 @@ typedef union {
    } bits;
 } float32_s; 
 
-void float32to16(float x, float16_s * f16) {
+#ifdef CUDA_FOUND
+__device__ void float32to16_gpu(float x, float16_s * f16) {
   float32_s f32={x}; // c99
 
   // to 16
   f16->bits.s=f32.bits.s;
-  f16->bits.e=std::max(-15,std::min(16,(int)(f32.bits.e-127))) +15;
+  f16->bits.e=max(-15, min(16,(int)(f32.bits.e-127))) +15;
   f16->bits.m=f32.bits.m >> 13;
 }
+
+__device__ float16_s float32to16_gpu(float x) {
+  float32_s f32={x}; // c99
+  float16_s f16;
+
+  // to 16
+  f16.bits.s=f32.bits.s;
+  f16.bits.e=max(-15,min(16,(int)(f32.bits.e-127))) +15;
+  f16.bits.m=f32.bits.m >> 13;
+  return f16;
+}
+#endif
 
 float16_s float32to16(float x) {
   float32_s f32={x}; // c99
@@ -48,8 +65,21 @@ float16_s float32to16(float x) {
   f16.bits.m=f32.bits.m >> 13;
   return f16;
 }
+
+void float32to16(float x, float16_s * f16) {
+  float32_s f32={x}; // c99
+
+  // to 16
+  f16->bits.s=f32.bits.s;
+  f16->bits.e=std::max(-15,std::min(16,(int)(f32.bits.e-127))) +15;
+  f16->bits.m=f32.bits.m >> 13;
+}
  
+#ifdef CUDA_FOUND
+__device__ __host__ float float16to32(float16_s f16) {
+#else
 float float16to32(float16_s f16) {
+#endif
   // back to 32
   float32_s f32;
   f32.bits.s=f16.bits.s;
@@ -59,6 +89,29 @@ float float16to32(float16_s f16) {
   return f32.v;
 }
  
+
+#ifdef CUDA_FOUND
+__device__ void float32to8_gpu(float x, float8_s * f8) {
+  float32_s f32={x}; // c99
+
+  // to 8
+  f8->bits.s=f32.bits.s;
+  f8->bits.e=max(-3,min(4,(int)(f32.bits.e-127))) +3;
+  f8->bits.m=f32.bits.m >> 19;
+}
+
+__device__ float8_s float32to8_gpu(float x) {
+  float32_s f32={x}; // c99
+  float8_s f8;
+
+  // to 8
+  f8.bits.s=f32.bits.s;
+  f8.bits.e=max(-3,min(4,(int)(f32.bits.e-127))) +3;
+  f8.bits.m=f32.bits.m >> 19;
+  return f8;
+}
+#endif
+
 void float32to8(float x, float8_s * f8) {
   float32_s f32={x}; // c99
 
@@ -78,8 +131,12 @@ float8_s float32to8(float x) {
   f8.bits.m=f32.bits.m >> 19;
   return f8;
 }
- 
+
+#ifdef CUDA_FOUND 
+__device__ __host__ float float8to32(float8_s f8) {
+#else
 float float8to32(float8_s f8) {
+#endif
   // back to 32
   float32_s f32;
   f32.bits.s=f8.bits.s;
@@ -140,3 +197,36 @@ void float16to32Arr(float16_s * input, float * output, size_t count) {
     output[i] = float16to32(input[i]);
   }
 }
+
+//CUDA kernels
+#ifdef CUDA_FOUND
+__global__ void float32to8Kern(float * input, float8_s * output) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    float32to8_gpu(input[idx], &output[idx]);
+}
+
+__global__ void float8to32Kern(float8_s * input, float * output) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    output[idx] = float8to32(input[idx]);
+}
+
+__global__ void float32to16Kern(float * input, float16_s * output) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    float32to16_gpu(input[idx], &output[idx]);
+}
+
+__global__ void float16to32Kern(float16_s * input, float * output) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    output[idx] = float16to32(input[idx]);
+}
+
+__global__ void float32to16Kern(float * input, __half * output) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    output[idx] = __float2half(input[idx]);
+}
+
+__global__ void float16to32Kern(__half * input, float * output) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    output[idx] = __half2float(input[idx]);
+}
+#endif
